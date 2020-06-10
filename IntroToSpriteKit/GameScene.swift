@@ -13,17 +13,26 @@ import AVFoundation
 class GameScene: SKScene {
     
     // MARK: Properties
-    var initialHeight: Int = 0
-    var initialParachuteHeight: Int = 0
-    var mass: Double = 0
-
-    let g = 9.8
-    var circleWithParachute = SKShapeNode()
-    var withParachuteSpeed:Double = 0
     
-    var circleWithoutParachute = SKShapeNode()
-    var withoutParachuteSpeed:Double = 0
-
+    // Physical constants
+    let g = 9.8
+    var drag = 0.0031734                // Drag without a parachute
+    
+    // State of parachutist
+    var height = 0.0                    // Will actually be set from parameter controller screen
+    var parachuteOpensAtHeight = 0.0    // Will actually be set from parameter controller screen
+    var velocity = 0.0
+    var mass = 0.0
+    var acceleration = 0.0              // Will be set to "g" when scene is set up
+    
+    // Tracking for time
+    var lastUpdateTime: TimeInterval = 0
+    var dt: TimeInterval = 0                // Tracks time between animation updates
+    var totalTimeElapsed: TimeInterval = 0  // Total time since animation started
+    
+    // Objects for the animation
+    var circleWithParachute = SKShapeNode()
+    
     // MARK: Methods
     // This function runs once to set up the scene
     override func didMove(to view: SKView) {
@@ -31,46 +40,57 @@ class GameScene: SKScene {
         // Set the background colour
         self.backgroundColor = .black
         
-        //add a circle
+        // Set initial acceleration
+        acceleration = g
+        
+        // Add a circle to represent someone falling with a parachute
         circleWithParachute = SKShapeNode(circleOfRadius: 10)
-        circleWithParachute.position = CGPoint(x: 300, y: self.initialParachuteHeight)
+        circleWithParachute.position = CGPoint(x: 300, y: self.parachuteOpensAtHeight)
         addChild(circleWithParachute)
         
-        circleWithoutParachute = SKShapeNode(circleOfRadius: 10)
-        circleWithoutParachute.position = CGPoint(x: 500, y: self.initialHeight)
-        addChild(circleWithoutParachute)
-    
-
     }
     
     // This runs before each frame is rendered
-    // Avoid putting computationally intense code in this function to maintain high performance
+    // Frames render at about 60 fps
     override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
-        withParachuteSpeed += accelerationWithParachute(velocity: withParachuteSpeed, mass: mass)
-        print(withParachuteSpeed)
-        let newPosition = CGPoint(x: circleWithParachute.position.x, y: circleWithParachute.position.y - CGFloat(withParachuteSpeed))
+        
+        // How much time has elapsed?
+        if lastUpdateTime > 0 {
+            dt = currentTime - lastUpdateTime
+        } else {
+            dt = 0
+            print("Initial height is: \(height)")
+            print("Parachute will open at height: \(parachuteOpensAtHeight)")
+            print("Initial mass is: \(mass)")
+        }
+        lastUpdateTime = currentTime
+        print("\(dt*1000) milliseconds since last update")
+        
+        // Check for when parachute opens
+        if height < parachuteOpensAtHeight {
+            drag = 43.046
+        }
+        
+        // Calculate new height
+        // NOTE: Have to break up equation below into two parts for compiler to accept the calculations
+        //
+        // height = height + velocity * dt + 0.5 * acceleration * pow(dt, 2)
+        //
+        // NOTE: We must subtract from the height since the origin is bottom left on the Cartesian plane
+        //       If we increase the height, the circle will move up.
+        height = height - velocity * dt
+        height -= 0.5 * acceleration * pow(dt, 2)
+        print("New height is: \(height)")
+        
+        // Set the new position of the parachutist
+        let newPosition = CGPoint(x: circleWithParachute.position.x,
+                                  y: CGFloat(height) )
         circleWithParachute.position = newPosition
         
-        withoutParachuteSpeed += accelerationWithoutParachute(velocity: withoutParachuteSpeed, mass: mass)
-        print(withoutParachuteSpeed)
-        let newPosition1 = CGPoint(x: circleWithoutParachute.position.x, y: circleWithoutParachute.position.y-CGFloat(withoutParachuteSpeed))
-        circleWithoutParachute.position = newPosition1
+        // Calculate new velocity and acceleration
+        velocity = velocity + acceleration * dt
+        acceleration = g - drag * pow(velocity, 2) / mass
+        
     }
     
-    func accelerationWithoutParachute (velocity: Double, mass: Double) -> Double {
-        return (g - pow(velocity, 2) * 0.031734 / mass)/60
-    }
-
-
-    //acceleration(velocity: 0.98, mass: 50)
-
-    //for y in ys (stride(from: 0, to: height, by: 0.1)){
-    //
-    //}
-    //
-
-    func accelerationWithParachute (velocity: Double, mass: Double) -> Double {
-        return (g - pow(velocity, 2) * 43.046 / mass)/60
-    }
 }

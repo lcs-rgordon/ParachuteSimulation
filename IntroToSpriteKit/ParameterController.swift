@@ -41,11 +41,10 @@ class ParameterController: NSViewController {
         // When the next window is the animation, pass certain pieces of information forward
         if let nextWindowController = segue.destinationController as? ViewController {
             
-            // Pass the initial height on
-            nextWindowController.initialHeight = labelHeight.integerValue
-            
-            nextWindowController.initialParachuteHeight = labelParachuteHeight.integerValue
-            nextWindowController.mass = labelMass.integerValue
+            // Pass the simulation parameters onward
+            nextWindowController.height = labelHeight.doubleValue
+            nextWindowController.parachuteOpensAtHeight = labelParachuteHeight.doubleValue
+            nextWindowController.mass = labelMass.doubleValue
             
         }
         
